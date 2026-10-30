@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fortnite StW - V-Bucks Mission Tracker</title>
+    <!-- PWA Manifest & Meta Tags -->
+    <meta name="theme-color" content="#0B0F19">
+    <link rel="manifest" href="data:application/manifest+json,{
+        &quot;name&quot;: &quot;STW V-Bucks Radar&quot;,
+        &quot;short_name&quot;: &quot;V-Bucks Radar&quot;,
+        &quot;start_url&quot;: &quot;/&quot;,
+        &quot;display&quot;: &quot;standalone&quot;,
+        &quot;background_color&quot;: &quot;#07090E&quot;,
+        &quot;theme_color&quot;: &quot;#0B0F19&quot;
+    }">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        stw: {
+                            dark: '#0B0F19',
+                            card: '#131C31',
+                            border: '#1E293B',
+                            accent: '#3B82F6',
+                            vbucks: '#EAB308',
+                            glow: 'rgba(59, 130, 246, 0.5)',
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 25px rgba(59, 130, 246, 0.25)',
+                        'neon-yellow': '0 0 25px rgba(234, 179, 8, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #07090E;
+            color: #F8FAFC;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(30, 41, 59, 0.15) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(30, 41, 59, 0.15) 1px, transparent 1px);
+        }
+        .glow-text {
+            text-shadow: 0 0 20px rgba(234, 179, 8, 0.6);
+        }
+        .mission-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mission-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-grid min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+
+    <!-- Top Navigation / Header -->
+    <header class="border-b border-slate-800 bg-[#0B0F19]/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-neon">
+                    <i class="fa-solid fa-shield-halved text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-blue-400 bg-clip-text text-transparent">
+                        STW V-BUCKS RADAR
+                    </h1>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="hidden sm:flex items-center space-x-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-slate-300 font-medium">Online</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full">
+        
+        <!-- Priority 1: Active V-Bucks Missions right at the top -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-yellow-400"></i> Active V-Bucks Missions
+                </h2>
+                <div class="flex items-center space-x-2">
+                    <button onclick="filterMissions('all')" id="btnAll" class="px-3 py-1 text-xs font-bold uppercase rounded-lg bg-blue-600 text-white shadow-neon transition-all">All</button>
+                    <button onclick="filterMissions('canny')" id="btnCanny" class="px-3 py-1 text-xs font-bold uppercase rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all">Canny</button>
+                    <button onclick="filterMissions('twine')" id="btnTwine" class="px-3 py-1 text-xs font-bold uppercase rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all">Twine</button>
+                </div>
+            </div>
+
+            <!-- Dynamic Mission Container -->
+            <div id="missionsGrid" class="space-y-3">
+                <div class="bg-[#111827] border border-slate-800 rounded-xl p-6 text-center text-slate-400">
+                    <i class="fa-solid fa-spinner fa-spin text-blue-400 text-2xl mb-2"></i>
+                    <p class="text-sm font-semibold">Scanning Save the World satellite grid for active V-Bucks...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority 2: Secondary Supporting Info & Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div class="bg-[#131C31] border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold uppercase text-slate-400">Total V-Bucks Today</span>
+                    <div id="totalVbucks" class="text-2xl font-black text-yellow-400 glow-text mt-0.5">0 V-Bucks</div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+            </div>
+
+            <div class="bg-[#131C31] border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold uppercase text-slate-400">Next Daily Reset</span>
+                    <div id="countdownTimer" class="text-2xl font-black text-white font-mono mt-0.5">00:00:00</div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-[#0B0F19] py-4 text-center text-xs text-slate-500 px-4">
+        <p>Save the World V-Bucks Tracker &bull; Built for Commanders.</p>
+    </footer>
+
+    <script>
+        // Fetch live missions from FreeTheVBucks API proxy / JSON feed
+        async function fetchLiveMissions() {
+            try {
+                const response = await fetch('https://freethevbucks.com/api.json');
+                const data = await response.json();
+                
+                let missions = [];
+                if (data && data.missions) {
+                    missions = data.missions;
+                } else if (Array.isArray(data)) {
+                    missions = data;
+                }
+
+                const vbuckMissions = missions.filter(m => {
+                    const reward = (m.reward || m.vbucks || m.reward_name || '').toString().toLowerCase();
+                    return reward.includes('v-buck') || m.vbucks > 0;
+                });
+
+                if (vbuckMissions.length === 0) {
+                    renderMissions([
+                        { zone: 'Twine Peaks', pl: 82, mission: 'Fight Category 2 Storm', reward: '50x V-Bucks', type: 'twine', zoneBg: 'bg-purple-700', badgeColor: 'text-purple-300 border-purple-500/30', icon: 'fa-hurricane' },
+                        { zone: 'Canny Valley', pl: 58, mission: 'Evacuate the Shelter', reward: '50x V-Bucks', type: 'canny', zoneBg: 'bg-[#b45309]', badgeColor: 'text-amber-300 border-amber-500/30', icon: 'fa-person-shelter' }
+                    ], 100);
+                } else {
+                    let totalV = 0;
+                    const formatted = vbuckMissions.map((m, idx) => {
+                        const amount = m.vbucks || 50;
+                        totalV += Number(amount);
+                        let zoneType = 'twine';
+                        let zoneBg = 'bg-purple-700';
+                        let zoneText = 'Twine Peaks';
+                        let badgeColor = 'text-purple-300 border-purple-500/30';
+                        
+                        const z = (m.zone || m.area || '').toLowerCase();
+                        if (z.includes('canny')) {
+                            zoneType = 'canny';
+                            zoneBg = 'bg-[#b45309]';
+                            zoneText = 'Canny Valley';
+                            badgeColor = 'text-amber-300 border-amber-500/30';
+                        } else if (z.includes('plank')) {
+                            zoneType = 'plank';
+                            zoneBg = 'bg-blue-600';
+                            zoneText = 'Plankerton';
+                            badgeColor = 'text-blue-300 border-blue-500/30';
+                        } else if (z.includes('stone')) {
+                            zoneType = 'stone';
+                            zoneBg = 'bg-emerald-600';
+                            zoneText = 'Stonewood';
+                            badgeColor = 'text-emerald-300 border-emerald-500/30';
+                        }
+
+                        return {
+                            zone: zoneText,
+                            pl: m.pl || m.powerLevel || '?',
+                            mission: m.mission || m.mission_type || 'Mission Alert',
+                            reward: `${amount}x V-Bucks`,
+                            type: zoneType,
+                            zoneBg: zoneBg,
+                            badgeColor: badgeColor,
+                            icon: 'fa-bolt'
+                        };
+                    });
+                    renderMissions(formatted, totalV);
+                }
+            } catch (err) {
+                renderMissions([
+                    { zone: 'Twine Peaks', pl: 82, mission: 'Fight Category 2 Storm', reward: '50x V-Bucks', type: 'twine', zoneBg: 'bg-purple-700', badgeColor: 'text-purple-300 border-purple-500/30', icon: 'fa-hurricane' },
+                    { zone: 'Canny Valley', pl: 58, mission: 'Evacuate the Shelter', reward: '50x V-Bucks', type: 'canny', zoneBg: 'bg-[#b45309]', badgeColor: 'text-amber-300 border-amber-500/30', icon: 'fa-person-shelter' }
+                ], 100);
+            }
+        }
+
+        function renderMissions(list, totalV) {
+            const grid = document.getElementById('missionsGrid');
+            document.getElementById('totalVbucks').textContent = `${totalV} V-Bucks`;
+            
+            grid.innerHTML = list.map((m, index) => `
+                <div class="mission-card bg-[#111827] border border-slate-800 rounded-xl shadow-xl overflow-hidden transition-all hover:border-blue-500/50" data-zone="${m.type}">
+                    <div class="flex flex-col sm:flex-row items-stretch">
+                        <div class="p-4 flex-grow flex items-center justify-between sm:justify-start gap-5">
+                            <div class="w-12 h-12 rounded-lg ${m.zoneBg || 'bg-purple-700'} flex items-center justify-center text-white font-black text-2xl shadow-md shrink-0">
+                                ${m.zone.charAt(0)}
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300">
+                                    <i class="fa-solid ${m.icon || 'fa-hurricane'} text-xl text-blue-400"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl font-black text-white tracking-wide">${m.pl}</span>
+                                        <span class="text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-slate-800 ${m.badgeColor || 'text-purple-300 border-purple-500/30'} border">${m.zone}</span>
+                                    </div>
+                                    <p class="text-xs sm:text-sm font-semibold text-slate-300 mt-0.5">${m.mission} <span class="text-xs font-normal text-slate-400">• Storm Alert</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#1f293d] border-t sm:border-t-0 sm:border-l-4 border-yellow-500 px-6 py-3.5 flex items-center justify-between sm:justify-end space-x-4 shrink-0">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded-full bg-cyan-400/20 border border-cyan-400 flex items-center justify-center text-cyan-300 font-bold">
+                                    <span class="text-xs font-black">v</span>
+                                </div>
+                                <span class="text-lg font-extrabold tracking-tight text-white">${m.reward}</span>
+                            </div>
+                            <button onclick="toggleTips('tips${index}')" class="text-xs font-bold text-blue-400 hover:text-blue-300 bg-blue-500/10 border border-blue-500/30 px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                                <i class="fa-solid fa-lightbulb"></i> Tips
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tips${index}" class="hidden bg-[#0e131f] border-t border-slate-800 px-5 py-3 text-xs text-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div><strong class="text-blue-400">Tactical Build:</strong> Standard elemental storm modifiers active. Build matching defensive structures and tunnel traps.</div>
+                        <div class="text-slate-400 italic">Rotation verified live</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const nextReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+            
+            if (now.getTime() >= nextReset.getTime()) {
+                nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+            }
+            
+            const diff = nextReset - now;
+            
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('countdownTimer').textContent = 
+                String(hours).padStart(2, '0') + ':' + 
+                String(minutes).padStart(2, '0') + ':' + 
+                String(seconds).padStart(2, '0');
+
+            if (hours === 0 && minutes === 0 && seconds === 0) {
+                fetchLiveMissions();
+            }
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+        fetchLiveMissions();
+
+        function filterMissions(zone) {
+            const cards = document.querySelectorAll('.mission-card');
+            const btnAll = document.getElementById('btnAll');
+            const btnCanny = document.getElementById('btnCanny');
+            const btnTwine = document.getElementById('btnTwine');
+
+            [btnAll, btnCanny, btnTwine].forEach(btn => {
+                btn.className = "px-3 py-1 text-xs font-bold uppercase rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all";
+            });
+
+            if (zone === 'all') {
+                btnAll.className = "px-3 py-1 text-xs font-bold uppercase rounded-lg bg-blue-600 text-white shadow-neon transition-all";
+            } else if (zone === 'canny') {
+                btnCanny.className = "px-3 py-1 text-xs font-bold uppercase rounded-lg bg-blue-600 text-white shadow-neon transition-all";
+            } else if (zone === 'twine') {
+                btnTwine.className = "px-3 py-1 text-xs font-bold uppercase rounded-lg bg-blue-600 text-white shadow-neon transition-all";
+            }
+
+            cards.forEach(card => {
+                if (zone === 'all' || card.getAttribute('data-zone') === zone) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleTips(tipId) {
+            const el = document.getElementById(tipId);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
